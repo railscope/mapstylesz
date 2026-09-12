@@ -1,0 +1,7 @@
+const gl = L.maplibreGL({
+    style: 'https://www.openhistoricalmap.org/map-styles/main/main.json', // Historic
+    attributionControl: '<a href="https://www.openhistoricalmap.org/">OpenHistoricalMap</a>'
+}).addTo(map);
+maplibreMap.once('styledata', function (event) {
+    maplibreMap.filterByDate('1914-07-05');
+});
