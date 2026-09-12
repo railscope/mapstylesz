@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>OpenHistoricalMap — Date Filtered</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- MapLibre GL -->
+  <script src="https://unpkg.com/maplibre-gl@3.2.0/dist/maplibre-gl.js"></script>
+  <link href="https://unpkg.com/maplibre-gl@3.2.0/dist/maplibre-gl.css" rel="stylesheet" />
+  <!-- Leaflet MapLibre GL Layer -->
+  <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.19/leaflet-maplibre-gl.js"></script>
+  <style>
+    html, body, #map { height: 100%; margin: 0; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script>
+    // Initialize map
+    const map = L.map('map').setView([50.37, -4.14], 10); // Plymouth, UK
+
+    // Add OpenHistoricalMap style
+    const gl = L.maplibreGL({
+      style: 'https://www.openhistoricalmap.org/map-styles/main/main.json',
+      attributionControl: '<a href="https://www.openhistoricalmap.org/">OpenHistoricalMap</a>'
+    }).addTo(map);
+
+    // Helper: parse ISO/partial dates to approximate year-month-day
+    function parseDate(val) {
+      if (!val || val === 'null') return null;
+      const s = String(val);
+      const match = s.match(/^(\d{4})(?:-(\d{1,2})(?:-(\d{1,2}))?)?/);
+      if (!match) return null;
+        const y = parseInt(match[1], 10);
+        const m = parseInt(match[2] || '1', 10);
+        const d = parseInt(match[3] || '1', 10);
+      return new Date(y, m - 1, d);
+    }
+
+    // Custom filterByDate implementation
+    function filterByDate(targetDateStr) {
+      const target = new Date(targetDateStr);
+      if (isNaN(+target)) {
+        console.warn('Invalid target date:', targetDateStr);
+        return;
+      }
+
+      const maplibreMap = gl.getMaplibreMap();
+      if (!maplibreMap.isStyleLoaded()) {
+        console.warn('Style not loaded yet');
+        return;
+      }
+
+      // Apply date filter to ALL layers using start_date & end_date
+      maplibreMap.getStyle().layers.forEach(layer => {
+        const existingFilter = layer.filter || ['all'];
+
+        // Show feature if:
+        // - start_date ≤ target AND (end_date is unset OR end_date ≥ target)
+        const dateFilter = [
+          'all',
+          ['any', ['!', ['has', 'start_date']], ['<=', ['get', 'start_date'], targetDateStr]],
+          ['any', ['!', ['has', 'end_date']], ['>=', ['get', 'end_date'], targetDateStr]]
+        ];
+
+        // Combine with existing filter
+        const newFilter = ['all', existingFilter, dateFilter];
+        maplibreMap.setFilter(layer.id, newFilter);
+      });
+    }
+
+    // Apply filter once style loads
+    gl.on('styledata', function () {
+      const maplibreMap = gl.getMaplibreMap();
+      if (maplibreMap.isStyleLoaded()) {
+        filterByDate('1914-07-05');
+        console.log('Date filter applied: 1914-07-05');
+      }
+    });
+  </script>
+</body>
+</html>
