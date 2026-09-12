@@ -31,3 +31,62 @@ cat > ~/1914-railways.html << 'EOF'
 </body>
 </html>
 EOF
+
+  <!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>OpenHistoricalMap — 5 July 1914</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/maplibre-gl@3.2.0/dist/maplibre-gl.js"></script>
+  <link href="https://unpkg.com/maplibre-gl@3.2.0/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.19/leaflet-maplibre-gl.js"></script>
+  <style>
+    html, body, #map { height: 100%; margin: 0; }
+    .date-label {
+      position: absolute; top: 12px; left: 12px; z-index: 999;
+      background: white; padding: 8px 14px; border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      font-family: sans-serif; font-size: 15px; font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="date-label">🗓️ 5 July 1914</div>
+  <div id="map"></div>
+
+  <script>
+    // Map centered on Plymouth, UK
+    const map = L.map('map').setView([50.37, -4.14], 10);
+
+    // Load OpenHistoricalMap
+    const gl = L.maplibreGL({
+      style: 'https://www.openhistoricalmap.org/map-styles/main/main.json',
+      attributionControl: '<a href="https://www.openhistoricalmap.org/">OpenHistoricalMap</a>'
+    }).addTo(map);
+
+    const TARGET_DATE = '1914-07-05';
+
+    // Apply 1914 date filter
+    gl.on('styledata', function () {
+      const mlMap = gl.getMaplibreMap();
+      if (!mlMap.isStyleLoaded()) return;
+
+      mlMap.getStyle().layers.forEach(layer => {
+        const baseFilter = layer.filter || ['all'];
+        const dateFilter = [
+          'all',
+          ['any', ['!', ['has', 'start_date']], ['<=', ['get', 'start_date'], TARGET_DATE]],
+          ['any', ['!', ['has', 'end_date']], ['>=', ['get', 'end_date'], TARGET_DATE]]
+        ];
+        mlMap.setFilter(layer.id, ['all', baseFilter, dateFilter]);
+      });
+
+      console.log('✅ Showing: ' + TARGET_DATE);
+    });
+  </script>
+</body>
+</html>
+
